@@ -24,13 +24,14 @@ Reference
 
 This tool is closely connected to our research paper titled "An Empirical Study on the Risk of Using Off-the-Shelf Techniques for Processing Mailing List Data"
 
-    Abstract – Mailing list repositories contain valuable information about the history of a project. Research is starting to mine this information to support developers and maintainers of long-lived software projects. However, such information exists as unstructured data that needs special processing before it can be studied. In this paper, we identify several challenges that arise when using off-the-shelf techniques for processing mailing list data. Our study highlights the importance of proper processing of mailing list data to ensure accurate research results
+<b>Abstract</b> - 
+<em>Mailing list repositories contain valuable information about the history of a project. Research is starting to mine this information to support developers and maintainers of long-lived software projects. However, such information exists as unstructured data that needs special processing before it can be studied. In this paper, we identify several challenges that arise when using off-the-shelf techniques for processing mailing list data. Our study highlights the importance of proper processing of mailing list data to ensure accurate research results</em>
 
-Publisher: IEEE.
+Download Link: http://nicolas-bettenburg.com/papers/bettenburg-icsm2009.pdf
 Copyright © by IEEE. This material is presented to ensure timely dissemination of scholarly and technical work. Copyright and all rights therein are retained by authors or by other copyright holders. All persons copying this information are expected to adhere to the terms and constraints invoked by each author’s copyright. In most cases, these works may not be reposted without the explicit permission of the copyright holder.
-http://nicolas-bettenburg.com/papers/bettenburg-icsm2009.pdf
 
 BiBTeX Reference:
+
     @inproceedings{bettenburg:icsm2009,
     author = {Nicolas Bettenburg and Emad Shihab and Ahmed E. Hassan},
     title = {An empirical study on the risks of using off-the-shelf techniques for processing mailing list data},
