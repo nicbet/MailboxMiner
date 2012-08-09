@@ -1,0 +1,14 @@
+#Fat Jar Configuration File
+#Sat Feb 07 02:17:55 EST 2009
+onejar.license.required=true
+manifest.classpath=
+manifest.removesigners=true
+onejar.checkbox=false
+jarname=dist/mailboxminer2.jar
+manifest.mergeall=true
+manifest.mainclass=ca.queensu.cs.sail.mailboxmina2.main.Main
+manifest.file=<createnew>
+jarname.isextern=false
+onejar.expand=
+excludes=<po|MailboxMiner>
+includes=
