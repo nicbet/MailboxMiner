@@ -12,6 +12,10 @@ representation. Some of the perks include:
 7. Resolution of multiple identities (matches aliases by name heuristics)
 8. Recovery of discussion thread structure through multiple heuristics (dates, titles, names, meta-information)
 
+License: GPLv3+
+====
+MailboxMiner is licensed under the GPLv3 (or any later version).
+
 Usage
 ====
 
