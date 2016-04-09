@@ -4,7 +4,7 @@
  * are made available under the terms of the GNU Public License v3.0
  * which accompanies this distribution, and is available at
  * http://www.gnu.org/licenses/gpl.html
- * 
+ *
  * Contributors:
  *     Nicolas Bettenburg - initial API and implementation
  ******************************************************************************/
@@ -47,10 +47,10 @@ import ca.queensu.cs.sail.mailboxmina2.parsetools.ParseDateHelper;
  */
 public class ConnectorPSQL {
 
-	
+
 	private Connection connection = null;
 	private Properties props = null;
-	
+
 	/**
 	 * Getter
 	 * @return the properties of the Connector
@@ -80,8 +80,8 @@ public class ConnectorPSQL {
 	public ConnectorPSQL(Properties properties) {
 		this.props = properties;
 	}
-	
-	
+
+
 	/**
 	 * Connect to the database if not done before and return the {@link Connection} object.
 	 * @return the {@link Connection} to the database if successful, null otherwise.
@@ -89,7 +89,7 @@ public class ConnectorPSQL {
 	public Connection getConnection() {
 		if (connection != null)
 			return connection;
-		
+
 		// try to load the PostgreSQL Database JDBC driver
 		try {
 			Class.forName("org.postgresql.Driver"); // load the driver
@@ -97,16 +97,16 @@ public class ConnectorPSQL {
 			Main.getLogger().error(this,"Unable to load PostgreSQL JDBC driver!",e);
 			return null;
 		}
-		
+
 		String db_url = props.getProperty("db_url");
 		String username = props.getProperty("username");
 		String password = props.getProperty("password");
-		
+
 		try {
 			// connect to the db
-			Connection connection = DriverManager.getConnection("jdbc:postgresql:" + db_url, username, password); 
+			Connection connection = DriverManager.getConnection("jdbc:postgresql:" + db_url, username, password);
 			// get MetaData to confirm connection
-			DatabaseMetaData dbmd = connection.getMetaData(); 
+			DatabaseMetaData dbmd = connection.getMetaData();
 			Main.getLogger().log("Connection to " + dbmd.getDatabaseProductName() + " " + dbmd.getDatabaseProductVersion() + " successful!");
 			this.connection = connection;
 			return connection;
@@ -115,8 +115,8 @@ public class ConnectorPSQL {
 			return null;
 		}
 	}
-		
-	
+
+
 	/**
 	 * Generate SQL calls to store a Java Mail API {@link Message} in an MM2 format database.<br>t
 	 * For more information on the MM2 format please read the documentation.
@@ -127,7 +127,7 @@ public class ConnectorPSQL {
 	@SuppressWarnings("unchecked")
 	public boolean storeMessage(Message message, Statement statement) {
 		boolean success = true;
-		
+
 		if (connection == null) {
 			Main.getLogger().warning("Connection is not open - trying to establish connection first...");
 			if (getConnection() == null) {
@@ -135,23 +135,23 @@ public class ConnectorPSQL {
 				success = false;
 			}
 		}
-		
+
 		// Split, extract, process and store ;-)
 		// Warning stupid, ugly, boring, long, awful code following!
-		
+
 		// Start with the messages table  ------------------------------------------------------------------------------------------------------
-		
+
 		// First the Sender's Name and Address
 		Properties fromParseResult = ParseAddressHelper.inferFromAddress(message);
 		String msg_sender_name = fromParseResult.getProperty("msg_sender_name");
 		String msg_sender_address = fromParseResult.getProperty("msg_sender_address");
-		
+
 		// Then the message's date
 		Date messageDate = ParseDateHelper.getDateFromMessage(message, connection);
-		String msg_date = ParseDateHelper.getGMTDate(messageDate); 
-		
+		String msg_date = ParseDateHelper.getGMTDate(messageDate);
+
 		// Then the message's subject
-		
+
 		String msg_subject = "";
 		try {
 			msg_subject = (message.getSubject() != null ? message.getSubject() : "");
@@ -159,24 +159,24 @@ public class ConnectorPSQL {
 			Main.getLogger().error(this, "Could not retrieve the subject for the message", e);
 			success = false;
 		}
-		
-		
+
+
 		// Now write the SQL to the statement
 		Main.getLogger().debug(1,this, msg_sender_address + " " + msg_sender_name);
 		Main.getLogger().debug(1,this, msg_date);
 		Main.getLogger().debug(1,this, msg_subject);
 		Main.getLogger().debug(1,this, "");
-		
+
 		StringBuilder msgSqlStringBuilder = new StringBuilder();
 		msgSqlStringBuilder.append("INSERT INTO messages (msg_sender_name, msg_sender_address, msg_date, msg_subject) VALUES (");
-		msgSqlStringBuilder.append("'" + escapeString(msg_sender_name) + "'");
+		msgSqlStringBuilder.append("E'" + escapeString(msg_sender_name) + "'");
 		msgSqlStringBuilder.append(",");
-		msgSqlStringBuilder.append("'" + escapeString(msg_sender_address) + "'");
+		msgSqlStringBuilder.append("E'" + escapeString(msg_sender_address) + "'");
 		msgSqlStringBuilder.append(",");
 		msgSqlStringBuilder.append("TIMESTAMP WITH TIME ZONE '");
 		msgSqlStringBuilder.append(msg_date);
 		msgSqlStringBuilder.append("',");
-		msgSqlStringBuilder.append("'" + escapeString(msg_subject) + "'");
+		msgSqlStringBuilder.append("E'" + escapeString(msg_subject) + "'");
 		msgSqlStringBuilder.append(");");
 		// Store this information!
 		try {
@@ -184,16 +184,16 @@ public class ConnectorPSQL {
 		} catch (SQLException e) {
 			Main.getLogger().error(this, "Could not add message to batch statement!", e);
 		}
-		
+
 		// Continue with the Headers ------------------------------------------------------------------------------------------------------
 		try {
 			Enumeration allheaders = message.getAllHeaders();
 			while (allheaders.hasMoreElements()) {
 				Header aheader = (Header) allheaders.nextElement();
 				statement.addBatch("INSERT INTO headers (msg_id, header_key, header_value) VALUES ("
-						+ "currval( 'messages_msg_id_seq'),'" 
-						+ escapeString(aheader.getName()) 
-						+ "','" + escapeString(MimeUtility.unfold(aheader.getValue())) 
+						+ "currval( 'messages_msg_id_seq'),E'"
+						+ escapeString(aheader.getName())
+						+ "',E'" + escapeString(MimeUtility.unfold(aheader.getValue()))
 						+ "');");
 			}
 		} catch (MessagingException e) {
@@ -203,8 +203,8 @@ public class ConnectorPSQL {
 			Main.getLogger().error(this, "Could not add message to batch statement!", e);
 			success = false;
 		}
-		
-		
+
+
 		// Now the recipients ----------------------------------------------------------------------------------------------------------------
 		// First primary recipients
 		try {
@@ -221,22 +221,22 @@ public class ConnectorPSQL {
 						InternetAddress recipient = (InternetAddress) a;
 						String recp_name = (recipient.getPersonal() == null ? "Unknown Name" : recipient.getPersonal());
 						String recp_adr = (recipient.getAddress() == null ? "unknown@address.com" : recipient.getAddress());
-						
+
 						statement.addBatch("INSERT INTO recipients (msg_id, recipient_type, recipient_name, recipient_address) VALUES ("
-								+ "currval( 'messages_msg_id_seq'),'"
+								+ "currval( 'messages_msg_id_seq'),E'"
 								+ escapeString("TO") + "',"
-								+ "'" + escapeString(recp_name) + "',"
-								+ "'" + escapeString(recp_adr) + "');");
+								+ "E'" + escapeString(recp_name) + "',"
+								+ "E'" + escapeString(recp_adr) + "');");
 					}
 				}
 			} else {
 				String recp_name = "Unknown Name";
 				String recp_adr = "unknown@address.com";
 				statement.addBatch("INSERT INTO recipients (msg_id, recipient_type, recipient_name, recipient_address) VALUES ("
-						+ "currval( 'messages_msg_id_seq'),'"
+						+ "currval( 'messages_msg_id_seq'),E'"
 						+ escapeString("TO") + "',"
-						+ "'" + escapeString(recp_name) + "',"
-						+ "'" + escapeString(recp_adr) + "');");
+						+ "E'" + escapeString(recp_name) + "',"
+						+ "E'" + escapeString(recp_adr) + "');");
 			}
 		} catch(SQLException e) {
 			Main.getLogger().error(this, "Could not add recipients to batch statement!", e);
@@ -251,12 +251,12 @@ public class ConnectorPSQL {
 						InternetAddress recipient = (InternetAddress) a;
 						String recp_name = (recipient.getPersonal() == null ? "Unknown Name" : recipient.getPersonal());
 						String recp_adr = (recipient.getAddress() == null ? "unknown@address.com" : recipient.getAddress());
-						
+
 						statement.addBatch("INSERT INTO recipients (msg_id, recipient_type, recipient_name, recipient_address) VALUES ("
-								+ "currval( 'messages_msg_id_seq'),'"
+								+ "currval( 'messages_msg_id_seq'),E'"
 								+ escapeString("CC") + "',"
-								+ "'" + escapeString(recp_name) + "',"
-								+ "'" + escapeString(recp_adr) + "');");
+								+ "E'" + escapeString(recp_name) + "',"
+								+ "E'" + escapeString(recp_adr) + "');");
 					}
 				}
 			}
@@ -267,7 +267,7 @@ public class ConnectorPSQL {
 			Main.getLogger().error(this, "Could not add recipients to batch statement!", e);
 			success = false;
 		}
-		
+
 		// Last Blind Copy recipients
 		try {
 			Address[] recipients = message.getRecipients(Message.RecipientType.BCC);
@@ -277,12 +277,12 @@ public class ConnectorPSQL {
 						InternetAddress recipient = (InternetAddress) a;
 						String recp_name = (recipient.getPersonal() == null ? "Unknown Name" : recipient.getPersonal());
 						String recp_adr = (recipient.getAddress() == null ? "unknown@address.com" : recipient.getAddress());
-						
+
 						statement.addBatch("INSERT INTO recipients (msg_id, recipient_type, recipient_name, recipient_address) VALUES ("
-								+ "currval( 'messages_msg_id_seq'),'"
+								+ "currval( 'messages_msg_id_seq'),E'"
 								+ escapeString("BCC") + "',"
-								+ "'" + escapeString(recp_name) + "',"
-								+ "'" + escapeString(recp_adr) + "');");
+								+ "E'" + escapeString(recp_name) + "',"
+								+ "E'" + escapeString(recp_adr) + "');");
 					}
 				}
 			}
@@ -293,8 +293,8 @@ public class ConnectorPSQL {
 			Main.getLogger().error(this, "Could not add recipients to batch statement!", e);
 			success = false;
 		}
-		
-		
+
+
 		// Now we get to the Primary Bodies .... -----------------------------------------------------------------------------------------
 		ParseBodyHelper bodyParser = new ParseBodyHelper();
 		List<Properties> body_text_parse_results = bodyParser.findMainBodyText(message);
@@ -302,23 +302,23 @@ public class ConnectorPSQL {
 			String body_type = body_text_parse_result.getProperty("type");
 			String body_note = body_text_parse_result.getProperty("note");
 			String body_text = body_text_parse_result.getProperty("body_text");
-			
+
 			Main.getLogger().debug(1, this, "Body Type: " + body_type);
 			Main.getLogger().debug(1, this, "Body Decode Note: " + body_note);
-			
+
 			try {
 				statement.addBatch("INSERT INTO bodies (msg_id, body_txt, body_type, note) VALUES ("
-						+ "currval( 'messages_msg_id_seq'),'"
+						+ "currval( 'messages_msg_id_seq'),E'"
 						+ escapeString(body_text) + "',"
 						+ "E'" + escapeString(body_type) + "',"
-						+ "'" + escapeString(body_note) + "');");
+						+ "E'" + escapeString(body_note) + "');");
 			} catch (SQLException e) {
 				Main.getLogger().error(this, "Could not add body to batch statement!", e);
 				success = false;
 			}
 		}
-			
-		
+
+
 		// Last thing to do: save all the attachments ...
 		List<Attachment> attachments = ParseAttachmentsHelper.getAllAttachmentsIn(message);
 		int i=0;
@@ -326,7 +326,7 @@ public class ConnectorPSQL {
 			i++;
 			try {
 				statement.addBatch("INSERT INTO attachments (msg_id, mime_type, data, order_id, size) VALUES ("
-						+ "currval( 'messages_msg_id_seq'),'"
+						+ "currval( 'messages_msg_id_seq'),E'"
 						+ escapeString(att.getMime_type()) + "',"
 						+ "'" + toPGString(att.getData()) + "',"
 						+  Integer.toString(i) + ", "
@@ -337,7 +337,7 @@ public class ConnectorPSQL {
 				success = false;
 			}
 		}
-		
+
 		Main.getLogger().putSeparator("debug");
 		return success;
 	}
@@ -361,7 +361,7 @@ public class ConnectorPSQL {
 		escaped = ccc.toString();
 		return escaped;
 	}
-	
+
 	/**
 	 * Helper method to make a given input save for usage in an SQL statement.<br>
 	 * This function does not substitute the 0x00 characters and should be used for attachments.
@@ -374,7 +374,7 @@ public class ConnectorPSQL {
 		escaped = escaped.replaceAll("\'", "\\\\\'");
 		return escaped;
 	}
-	
+
 	/**
 	 * Helper method to convert byte[] data to an Octet String.<br>
 	 * The standard approach is to used JDBC's setByte() methods.<br>
@@ -407,7 +407,7 @@ public class ConnectorPSQL {
 		}
 		return l_strbuf.toString();
 	}
-	
+
 	/**
 	 * Read database contents and return a list of lightweight MM2Message objects, which represent elements
 	 * suitable for reconstruction of threads.
@@ -417,7 +417,7 @@ public class ConnectorPSQL {
 	 */
 	public List<MM2Message> getMM2Messages(boolean allHeaders, boolean withMainBody) {
 		List<MM2Message> messages = new ArrayList<MM2Message>();
-		
+
 		if (connection == null) {
 			Main.getLogger().warning("Connection not established ... trying to open connection first.");
 			Connection connectionAttemt = getConnection();
@@ -438,7 +438,7 @@ public class ConnectorPSQL {
 			Main.getLogger().error("Critical Error - Ressource not found!", e);
 			System.exit(1);
 		}
-		
+
 		// The following code has heavy dependencies on the database layout and the file MM2MessagesThreadQuery.sql
 		// should refactor this ugly hack some time... but not today
 		try {
@@ -446,24 +446,24 @@ public class ConnectorPSQL {
 			ResultSet queryResults = statement.executeQuery(query);
 			while (queryResults.next()) {
 				MM2Message msg = new MM2Message();
-							
+
 				msg.setMsg_sender_name(queryResults.getString("msg_sender_name"));
 				msg.setMsg_sender_address(queryResults.getString("msg_sender_address"));
-				
+
 				msg.setMsg_date(new Date(queryResults.getTimestamp("msg_date").getTime()));
 				msg.setSubject((queryResults.getString("msg_subject") == null ? "" : queryResults.getString("msg_subject")));
-				
+
 				msg.addHeader("in-reply-to", (queryResults.getString("inreply") == null? "" : queryResults.getString("inreply")));
 				msg.addHeader("message-id", (queryResults.getString("messageid") == null? "" : queryResults.getString("messageid")));
 				msg.addHeader("references", (queryResults.getString("references") == null ? "" : queryResults.getString("references")));
 				msg.addHeader("msg_id", queryResults.getString("msg_id"));
-				
+
 				messages.add(msg);
 			}
 		} catch (SQLException e) {
 			Main.getLogger().error(this, "Error receiving messages from database ", e);
 		}
-		
+
 		return messages;
 	}
 
