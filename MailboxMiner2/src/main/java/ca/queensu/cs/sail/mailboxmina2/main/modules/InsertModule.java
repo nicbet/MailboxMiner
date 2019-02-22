@@ -125,32 +125,57 @@ public class InsertModule implements IModule {
 		logger.debug(this, "Inserting messages into Database...");
 		Connection connection = storageConnector.getConnection();
 		Statement batchStatement = connection.createStatement();
-		
-		for (Message msg : messages) {
-			if (!this.storageConnector.storeMessage(msg, batchStatement)) {
-				success = false;
-			}
-		}
-		if (!testonly)
-			batchStatement.executeBatch();
-		
-		batchStatement.close();
-		return success;		
+
+                int nrBadMessages=0;
+                int totalNrMessages=0;
+                
+                for (Message msg : messages) {
+                    totalNrMessages++;
+                    connection.setAutoCommit(false);
+                    if (!this.storageConnector.storeMessage(msg, batchStatement)) {
+                        success = false;
+                        nrBadMessages++;
+                    }else{
+                        if (!testonly){
+                            try{
+                                batchStatement.executeBatch();
+                            }catch(SQLException ex){
+                                try{
+                                    logger.error(this, "Could not insert message: "+ msg.getSubject());
+                                }catch(javax.mail.MessagingException e){
+                                    logger.error(this, "No subject for message: "+ msg.toString());
+                                    nrBadMessages++;
+                                }
+                            }
+
+                            connection.setAutoCommit(true);
+                            try{
+                                batchStatement.clearBatch();
+                            }catch(SQLException ex){
+                                logger.error(this, "Could not clear batch statement!", ex);
+                            }
+                        }
+                    }
+                }
+                
+                batchStatement.close();
+                System.out.println(nrBadMessages+"/"+totalNrMessages+" errors encountered");
+                return success;
 	}
 
-	/**
-	 * This method checks whether all required properties have been
-	 * supplied to the Module. If not an error message is printed.
-	 * @param props
-	 */
-	private void checkProperties(Properties props) {
-		if (!props.containsKey("username")
-				|| !props.containsKey("db_url")
-				|| !props.containsKey("password")
-				|| !props.containsKey("path")) {
-			logger.error(this, "Error! Please supply all required properties to the module!");
-			System.exit(1);
-		}
-	}
+    /**
+     * This method checks whether all required properties have been
+     * supplied to the Module. If not an error message is printed.
+     * @param props
+     */
+    private void checkProperties(Properties props) {
+        if (!props.containsKey("username")
+            || !props.containsKey("db_url")
+            || !props.containsKey("password")
+            || !props.containsKey("path")) {
+            logger.error(this, "Error! Please supply all required properties to the module!");
+            System.exit(1);
+        }
+    }
 
 }
